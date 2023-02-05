@@ -20,6 +20,8 @@ app.use(morgan(function (tokens, req, res) {
   ].join(' ')
 }))
 
+app.use(express.static('build'))
+
 
 
 let phonebook = [
