@@ -1,9 +1,14 @@
+require('dotenv').config()
+
+const Contact = require('./models/contact')
+
 const express = require('express')
 const app = express()
 
 const morgan = require('morgan')
 const cors = require('cors')
 
+app.use(express.static('build'))
 app.use(express.json())
 
 
@@ -20,106 +25,92 @@ app.use(morgan(function (tokens, req, res) {
   ].join(' ')
 }))
 
-app.use(express.static('build'))
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
 
-
-
-let phonebook = [
-  { 
-    "id": 1,
-    "name": "Arto Hellas", 
-    "number": "040-123456"
-  },
-  { 
-    "id": 2,
-    "name": "Ada Lovelace", 
-    "number": "39-44-5323523"
-  },
-  { 
-    "id": 3,
-    "name": "Dan Abramov", 
-    "number": "12-43-234345"
-  },
-  { 
-    "id": 4,
-    "name": "Mary Poppendieck", 
-    "number": "39-23-6423122"
+  if (error.name === 'CastError') {
+    return response.status(500).send({error: 'malformatted id'})
   }
-]
+
+  next(error)
+}
+
+app.use(errorHandler)
 
 app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
 
 app.get('/api/persons/', (request, response) => {
-  response.json(phonebook)
+  Contact.find({}).then(contacts => {
+    response.json(contacts)
+  })
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = phonebook.find(person => person.id === id)
-
-  if (person) {
-    response.json(person)
-  } else {
-    response.status(404).end()
-  }
+  Contact.findById(request.params.id).then(contact => {
+    response.json(contact)
+  })
 })
 
 app.get('/info/', (request, response) => {
   var currDate = new Date()
-  response.send(`
-    <p>Phonebook has info for ${phonebook.length} people</p>
-    <p>${currDate.toDateString()} ${currDate.toLocaleTimeString()}</p>
-  `)
+  var count = Contact.collection.countDocuments()
+    .then(myCount => {
+      response.send(`
+        <p>Phonebook has info for ${myCount} people</p>
+        <p>${currDate.toDateString()} ${currDate.toLocaleTimeString()}</p>
+      `)
+    })
+
+  
 })
 
-app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  phonebook = phonebook.filter(person => person.id !== id) 
-
-  response.status(204).end()
+app.delete('/api/persons/:id', (request, response, next) => {
+  Contact.findByIdAndRemove(request.params.id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(error => next(error))
 })
-
-const generateId = () => {
-  const maxId = phonebook.length > 0 
-    ? Math.max(...phonebook.map(n => n.id)) //the ... transforms the array into individual members
-    : 0
-
-  return maxId + 1
-}
 
 app.post('/api/persons', (request, response) => {
   const body = request.body
 
-  if (!body.name) {
+  if (body.name === undefined) {
     return response.status(400).json({
       error: 'name missing'
     })
   }
 
-  if (phonebook.find(person => person.name === body.name)) {
-    return response.status(400).json({
-      error: 'name already exists'
-    })
-  }
-
-  if (!body.number) {
+  if (body.number === undefined) {
     return response.status(400).json({
       error: 'number missing'
     })
   }
-  
 
-  const person = {
+  const person = new Contact({
     name: body.name,
     number: body.number,
-    id: generateId()
+  })
+
+  person.save().then(savedContact => {
+    response.json(savedContact)
+  })
+})
+
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body
+  const person = {
+    name: body.name,
+    number: body.number
   }
 
-  phonebook = phonebook.concat(person)
-
-  response.json(person)
+  Contact.findByIdAndUpdate(request.params.id, person, {new: true})
+    .then(updatedContact => {
+      response.json(updatedContact)
+    })
+    .catch(error => next(error))
 })
 
 
