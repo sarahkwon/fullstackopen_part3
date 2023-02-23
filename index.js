@@ -50,13 +50,11 @@ app.get('/info/', (request, response) => {
         <p>${currDate.toDateString()} ${currDate.toLocaleTimeString()}</p>
       `)
     })
-
-  
 })
 
 app.delete('/api/persons/:id', (request, response, next) => {
   Contact.findByIdAndRemove(request.params.id)
-    .then(result => {
+    .then(() => {
       response.status(204).end()
     })
     .catch(error => next(error))
@@ -85,16 +83,16 @@ app.post('/api/persons', (request, response, next) => {
   person.save().then(savedContact => {
     response.json(savedContact)
   })
-  .catch(error => next(error))
+    .catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (request, response, next) => {
   const { name, number }= request.body
 
   Contact.findByIdAndUpdate(
-    request.params.id, 
-    { name, number }, 
-    {new: true, runValidators: true, context: 'query'}
+    request.params.id,
+    { name, number },
+    { new: true, runValidators: true, context: 'query' }
   )
     .then(updatedContact => {
       response.json(updatedContact)
@@ -112,7 +110,7 @@ app.listen(PORT, () => {
 const errorHandler = (error, request, response, next) => {
 
   if (error.name === 'CastError') {
-    return response.status(500).send({error: 'malformatted id'})
+    return response.status(500).send({ error: 'malformatted id' })
   } else if (error.name === 'ValidationError') {
     return response.status(400).json({
       error: error.message

@@ -8,7 +8,8 @@
     "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1\"",
     "build:ui": "rm -rf build && cd ../fullstack_open_2022/part2/phonebook && npm run build && cp -r build ../../../fullstackopen_part3",
-    "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push"
+    "deploy:full": "npm run build:ui && git add . && git commit -m uibuild && git push",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -21,6 +22,7 @@
   },
   "homepage": "https://github.com/sarahkwon/fullstackopen_part3#readme",
   "devDependencies": {
+    "eslint": "^8.34.0",
     "nodemon": "^2.0.20"
   },
   "dependencies": {
