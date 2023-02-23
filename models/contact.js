@@ -13,9 +13,24 @@ mongoose.connect(url)
 
 //tells Mongoose how the note objects are to be stored in the database
 const contactSchema = new mongoose.Schema({
-  name: String,
-  number: String,
+  name: {
+    type: String,
+    minLength: 3,
+    required: [true, 'User name required']
+  },
+  number: {
+    type: String,
+    minLength: 8,
+    validate: {
+      validator: function(v) {
+        return /\d{3}-\d{3}-\d{4}/.test(v);
+      },
+      message: `you did not enter a valid phone number! (xxx-xxx-xxxx)`
+    },
+    required: [true, 'User phone number required']
+  }
 })
+
 
 contactSchema.set('toJSON', {
   transform: (document, returnedObject) => {

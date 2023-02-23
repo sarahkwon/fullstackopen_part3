@@ -25,18 +25,6 @@ app.use(morgan(function (tokens, req, res) {
   ].join(' ')
 }))
 
-const errorHandler = (error, request, response, next) => {
-  console.error(error.message)
-
-  if (error.name === 'CastError') {
-    return response.status(500).send({error: 'malformatted id'})
-  }
-
-  next(error)
-}
-
-app.use(errorHandler)
-
 app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
@@ -55,7 +43,7 @@ app.get('/api/persons/:id', (request, response) => {
 
 app.get('/info/', (request, response) => {
   var currDate = new Date()
-  var count = Contact.collection.countDocuments()
+  Contact.collection.countDocuments()
     .then(myCount => {
       response.send(`
         <p>Phonebook has info for ${myCount} people</p>
@@ -74,20 +62,20 @@ app.delete('/api/persons/:id', (request, response, next) => {
     .catch(error => next(error))
 })
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
   const body = request.body
 
-  if (body.name === undefined) {
-    return response.status(400).json({
-      error: 'name missing'
-    })
-  }
+  // if (body.name === "") {
+  //   return response.status(400).json({
+  //     error: 'name missing'
+  //   })
+  // }
 
-  if (body.number === undefined) {
-    return response.status(400).json({
-      error: 'number missing'
-    })
-  }
+  // if (body.number === "") {
+  //   return response.status(400).json({
+  //     error: 'number missing'
+  //   })
+  // }
 
   const person = new Contact({
     name: body.name,
@@ -97,16 +85,17 @@ app.post('/api/persons', (request, response) => {
   person.save().then(savedContact => {
     response.json(savedContact)
   })
+  .catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (request, response, next) => {
-  const body = request.body
-  const person = {
-    name: body.name,
-    number: body.number
-  }
+  const { name, number }= request.body
 
-  Contact.findByIdAndUpdate(request.params.id, person, {new: true})
+  Contact.findByIdAndUpdate(
+    request.params.id, 
+    { name, number }, 
+    {new: true, runValidators: true, context: 'query'}
+  )
     .then(updatedContact => {
       response.json(updatedContact)
     })
@@ -119,3 +108,18 @@ const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
+
+const errorHandler = (error, request, response, next) => {
+
+  if (error.name === 'CastError') {
+    return response.status(500).send({error: 'malformatted id'})
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({
+      error: error.message
+    })
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
